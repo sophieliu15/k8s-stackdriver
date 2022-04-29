@@ -19,7 +19,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"strings"
@@ -39,7 +41,7 @@ var (
 	resyncPeriod       = flag.Duration("resync-period", 1*time.Minute, "Reflector resync period")
 	sinkOpts           = flag.String("sink-opts", "", "Parameters for configuring sink")
 	prometheusEndpoint = flag.String("prometheus-endpoint", ":80", "Endpoint on which to "+
-		"expose Prometheus http handler")
+			"expose Prometheus http handler")
 )
 
 func newSystemStopChannel() chan struct{} {
@@ -88,6 +90,10 @@ func main() {
 	go func() {
 		http.Handle("/metrics", promhttp.Handler())
 		glog.Fatalf("Prometheus monitoring failed: %v", http.ListenAndServe(*prometheusEndpoint, nil))
+	}()
+
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
 
 	stopCh := newSystemStopChannel()
